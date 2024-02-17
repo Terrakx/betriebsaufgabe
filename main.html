@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Übergangs- und Aufgabeergebnis Berechnung</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        display: grid;
+        grid-template-rows: auto 1fr auto; /* Footer will take remaining space */
+        min-height: 100vh; /* Ensure the body takes up at least the full viewport height */
+    }
+
+    form {
+        max-width: 1080px;
+        margin: 0 auto;
+    }
+
+    .category {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .category label {
+        margin: 5px;
+    }
+
+    .category input[type="text"] {
+        width: 420px;
+        margin: 5px;
+        padding: 8px;
+        box-sizing: border-box;
+    }
+
+    .category input[type="number"] {
+        flex-grow: 0;
+        width: 150px; /* Smaller width for number inputs */
+        margin: 5px;
+        padding: 8px;
+        box-sizing: border-box;
+    }
+
+    .category input[name="Prozent"] {
+        flex-grow: 0;
+        width: 90px; /* Smaller width for number inputs */
+        margin: 5px;
+        padding: 8px;
+        box-sizing: border-box;
+    }
+
+    .ust-details {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .ust-details input {
+        flex-grow: 0;
+        width: 100px; /* Fixed width for USt percent and Steuerbetrag */
+        margin: 5px;
+        padding: 8px;
+        box-sizing: border-box;
+    }
+
+    input[type="checkbox"] {
+        margin: 5px 10px 5px 0;
+    }
+
+    input[type="submit"] {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        float: right;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    input[name="saveButton"], input[name="importButton"] {
+        background-color: #740057;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+
+    footer {
+        background-color: #414141;
+        color: #fff;
+        padding: 5px;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+<form id="calcForm">
+    <h2>Grunddaten</h2>
+    <div class="category">
+        <input type="text" id="klientennummer" placeholder="Klientennummer">
+    </div>
+    <div class="category">
+        <input type="text" id="name" placeholder="Name">
+    </div>
+    <div class="category">
+        <input type="text" id="steuernummer" placeholder="Steuernummer">
+    </div>
+    <div class="category">
+        <input type="text" id="straße" placeholder="Straße">
+    </div>
+    <div class="category">
+        <input type="text" id="plz" placeholder="PLZ">
+    </div>
+    <div class="category">
+        <input type="text" id="ort" placeholder="Ort">
+    </div>
+    
+    <h2>Berechnung</h2>
+    <select id="berechnung">
+        <option value="uebergang">Übergangsergebnis</option>
+        <option value="aufgabe">Aufgabeergebnis</option>
+        <option value="beides">Beides</option>
+    </select>
+    
+    <div id="uebergang">
+        <h3>Übergangsergebnis</h3>
+        <h4>Forderungen</h4>
+        <div class="category" data-category="forderungen">
+            <input type="text" placeholder="Text">
+            <input type="number" placeholder="Betrag eingeben">
+            <label class="ust-check-label"><input type="checkbox" class="ust-check"> USt</label>
+            <div class="ust-details hidden">
+                <input type="number" name="Prozent" placeholder="Prozent">
+                <input type="number" placeholder="Steuerbetrag">
+            </div>
+        </div>
+        <h4>Verbindlichkeiten</h4>
+        <div class="category" data-category="verbindlichkeiten">
+            <input type="text" placeholder="Text">
+            <input type="number" placeholder="Betrag eingeben">
+            <label class="ust-check-label"><input type="checkbox" class="ust-check"> USt</label>
+            <div class="ust-details hidden">
+                <input type="number" name="Prozent" placeholder="Prozent">
+                <input type="number" placeholder="Steuerbetrag">
+            </div>
+        </div>
+        <h4>Rückstellungen</h4>
+        <div class="category" data-category="rückstellungen">
+            <input type="text" placeholder="Text">
+            <input type="number" placeholder="Betrag eingeben">
+            <label class="ust-check-label"><input type="checkbox" class="ust-check"> USt</label>
+            <div class="ust-details hidden">
+                <input type="number" name="Prozent" placeholder="Prozent">
+                <input type="number" placeholder="Steuerbetrag">
+            </div>
+        </div>
+        <h4>Bestandsveränderung</h4>
+        <div class="category" data-category="bestandsveränderung">
+            <input type="text" placeholder="Text">
+            <input type="number" placeholder="Betrag eingeben">
+            <label class="ust-check-label"><input type="checkbox" class="ust-check"> USt</label>
+            <div class="ust-details hidden">
+                <input type="number" name="Prozent" placeholder="Prozent">
+                <input type="number" placeholder="Steuerbetrag">
+            </div>
+        </div>
+    </div>
+    
+    <div id="aufgabe" class="hidden">
+        <h3>Aufgabeergebnis</h3>
+        <h4>Veräußerungserlös</h4>
+        <div class="category" data-category="veräußerungserlös">
+            <input type="text" placeholder="Text">
+            <input type="number" placeholder="Betrag eingeben">
+            <label class="ust-check-label"><input type="checkbox" class="ust-check"> USt</label>
+            <div class="ust-details hidden">
+                <input type="number" name="Prozent" placeholder="Prozent">
+                <input type="number" placeholder="Steuerbetrag">
+            </div>
+        </div>
+        <h4>Vom Erwerber übernommene private Schulden</h4>
+        <div class="category" data-category="private_schulden">
+            <input type="text" placeholder="Text">
+            <input type="number" placeholder="Betrag eingeben">
+            <label class="ust-check-label"><input type="checkbox" class="ust-check"> USt</label>
+            <div class="ust-details hidden">
+                <input type="number" name="Prozent" placeholder="Prozent">
+                <input type="number" placeholder="Steuerbetrag">
+            </div>
+        </div>
+        <h4>Vom Erwerber übernommene betriebliche Schulden</h4>
+        <div class="category" data-category="betriebliche_schulden">
+            <input type="text" placeholder="Text">
+            <input type="number" placeholder="Betrag eingeben">
+            <label class="ust-check-label"><input type="checkbox" class="ust-check"> USt</label>
+            <div class="ust-details hidden">
+                <input type="number" name="Prozent" placeholder="Prozent">
+                <input type="number" placeholder="Steuerbetrag">
+            </div>
+        </div>
+        <h4>Gemeiner Wert der ins PV übernommen Aktiva</h4>
+        <div class="category" data-category="gem_wert_aktiva">
+            <input type="text" placeholder="Text" data-category="aktiva">
+            <input type="number" placeholder="Betrag eingeben">
+            <label class="ust-check-label"><input type="checkbox" class="ust-check"> USt</label>
+            <div class="ust-details hidden">
+                <input type="number" name="Prozent" placeholder="Prozent">
+                <input type="number" placeholder="Steuerbetrag">
+            </div>
+        </div>
+        <h4>Aufgabekosten</h4>
+        <div class="category" data-category="aufgabekosten">
+            <input type="text" placeholder="Text">
+            <input type="number" placeholder="Betrag eingeben">
+            <label class="ust-check-label"><input type="checkbox" class="ust-check"> USt</label>
+            <div class="ust-details hidden">
+                <input type="number" name="Prozent" placeholder="Prozent">
+                <input type="number" placeholder="Steuerbetrag">
+            </div>
+        </div>
+    </div>
+    <div class="category">
+        <input type="submit" value="Berechnen">
+        <input type="button" name ="saveButton" id="saveButton" value="Save as XML">
+        <input type="file" name="importButton" id="importButton" accept=".xml" value="Datei hochladen">
+    </div>
+</form>
+<br><br><br>
+<footer>
+    <p>&copy; 2024 Andreas Pany</p>
+</footer>  
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to toggle sections based on dropdown value
+    function toggleSections() {
+        var value = document.getElementById('berechnung').value;
+        var uebergangSection = document.getElementById('uebergang');
+        var aufgabeSection = document.getElementById('aufgabe');
+        
+        if (value === 'uebergang') {
+            uebergangSection.style.display = 'block';
+            aufgabeSection.style.display = 'none';
+        } else if (value === 'aufgabe') {
+            uebergangSection.style.display = 'none';
+            aufgabeSection.style.display = 'block';
+        } else if (value === 'beides') {
+            uebergangSection.style.display = 'block';
+            aufgabeSection.style.display = 'block';
+        }
+    }
+
+    // Initial call to set the correct display state based on the dropdown
+    toggleSections();
+
+    // Event listener for the dropdown change
+    document.getElementById('berechnung').addEventListener('change', toggleSections);
+
+    // Function to handle USt checkbox change
+    function handleCheckboxChange() {
+        var ustDetails = this.closest('.category').querySelector('.ust-details');
+        ustDetails.classList.toggle('hidden', !this.checked);
+    }
+
+    // Attach event listeners to USt checkboxes initially present in the form
+    document.querySelectorAll('.ust-check').forEach(checkbox => {
+        checkbox.addEventListener('change', handleCheckboxChange);
+    });
+
+    // Function to update event listeners for text inputs and USt checkboxes
+    function updateEventListeners() {
+        document.querySelectorAll('.category').forEach(function(categoryContainer) {
+            var textInputs = categoryContainer.querySelectorAll('input[type="text"]');
+            textInputs.forEach(input => {
+                input.removeEventListener('input', handleTextInput);
+            });
+
+            var lastTextInput = textInputs[textInputs.length - 1];
+            if (lastTextInput) {
+                lastTextInput.addEventListener('input', handleTextInput);
+            }
+        });
+    }
+
+    function handleTextInput() {
+    var category = this.closest('.category').getAttribute('data-category');
+    var isLastRow = !this.closest('.category').nextElementSibling || this.closest('.category').nextElementSibling.getAttribute('data-category') !== category;
+    
+    if (isLastRow && this.value.trim() !== '') {
+        var newRow = this.closest('.category').cloneNode(true);
+        newRow.setAttribute('data-category', category); // Ensure cloned row retains original data-category
+        newRow.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => input.value = '');
+        newRow.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+            checkbox.addEventListener('change', handleCheckboxChange);
+        });
+        newRow.querySelector('.ust-details').classList.add('hidden');
+        this.closest('.category').parentNode.insertBefore(newRow, this.closest('.category').nextSibling);
+        updateEventListeners();
+    }
+}
+
+
+
+    // Initial setup of event listeners for existing rows
+    updateEventListeners();
+
+    // Event listener for form submission
+    document.getElementById('calcForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        alert('Berechnung abgeschlossen!');
+    });
+
+    function serializeToXML() {
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<FormData>\n';
+
+    // Temporary object to hold category sets
+    const categories = {};
+
+    // Iterate over all categories
+    document.querySelectorAll('.category[data-category]').forEach((categoryDiv) => {
+        const category = categoryDiv.getAttribute('data-category');
+
+        // Initialize the category in the categories object if not already present
+        if (!categories[category]) {
+            categories[category] = [];
+        }
+
+        // Prepare the set XML string
+        let setXML = '';
+        let setName = '';
+        categoryDiv.querySelectorAll('input[type="text"], input[type="number"], input[type="checkbox"]').forEach((input, index) => {
+            if (index % 5 === 0) { // Assuming each set has 5 inputs
+                setName = `set${categories[category].length + 1}`;
+                setXML += `<${setName}>\n`;
+            }
+
+            const entryName = `entry${(index % 5) + 1}`;
+            const value = input.type === 'checkbox' ? input.checked : input.value;
+            setXML += `  <${entryName}>${value}</${entryName}>\n`;
+
+            if ((index + 1) % 5 === 0 || index === categoryDiv.querySelectorAll('input[type="text"], input[type="number"], input[type="checkbox"]').length - 1) {
+                setXML += `</${setName}>\n`;
+            }
+        });
+
+        // Add the set XML string to the appropriate category
+        categories[category].push(setXML);
+    });
+
+    // Iterate over the categories object to construct the final XML string
+    Object.keys(categories).forEach(category => {
+        xml += `<${category}>\n`;
+        categories[category].forEach(setXML => {
+            xml += setXML;
+        });
+        xml += `</${category}>\n`;
+    });
+
+    xml += '</FormData>';
+    return xml;
+}
+    // Function to save form data as XML
+    function saveAsXML() {
+        var xmlData = serializeToXML();
+        var blob = new Blob([xmlData], { type: 'application/xml' });
+        var url = URL.createObjectURL(blob);
+
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'formData.xml';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // Event listener for save button
+        document.getElementById('saveButton').addEventListener('click', function() {
+            saveAsXML(); // Call saveAsXML function directly
+        });
+
+    // Event listener for file input change (import)
+    document.getElementById('importButton').addEventListener('change', function(event) {
+        var file = event.target.files[0];
+        var reader = new FileReader();
+        
+        reader.onload = function(event) {
+            var xmlString = event.target.result;
+            var parser = new DOMParser();
+            var xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+            var formData = xmlDoc.querySelector('FormData');
+
+            if (formData) {
+                var form = document.getElementById('calcForm');
+
+                Array.from(formData.children).forEach(function(field) {
+                    var input = form.querySelector(`#${field.tagName}`);
+                    if (input) {
+                        input.value = field.textContent;
+                    }
+                });
+
+                alert('Form data imported successfully!');
+            } else {
+                alert('Invalid XML format!');
+            }
+        };
+
+        reader.readAsText(file);
+    });
+});
+
+</script>    
+</body>
+</html>
