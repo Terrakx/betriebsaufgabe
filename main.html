@@ -69,39 +69,65 @@
         margin: 5px 10px 5px 0;
     }
 
-    input[type="submit"] {
-        background-color: #4CAF50;
+    .custom-button {
+        background-color: #3734f5;
+        border: none;
         color: white;
         padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
         cursor: pointer;
-        float: right;
+        border-radius: 4px;
     }
 
     .custom-file-upload {
-        background-color: #3419ac;
-        color: white;
+        background-color: #3734f5;
         padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
+        text-align: center;
+        color: white;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
         cursor: pointer;
-        margin-right: 10px;
+        border-radius: 4px;
     }
+
+    .calculation-button {
+        background-color: #4CAF50; /* Green */
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 8px;
+    }
+
+    .custom-button:hover,
+    .custom-file-upload:hover,
+    .calculation-button:hover {
+        background-color: #ffae00; /* Darker background on hover */
+        color: #414141
+    }
+
+    .category input[type="date"] {
+        width: 420px;
+        margin: 5px;
+        padding: 8px;
+        box-sizing: border-box;
+    }
+
+/* Add any additional styling as needed */
 
 
     .hidden {
         display: none;
-    }
-
-    input[name="saveButton"], input[name="importButton"] {
-        background-color: #3419ac;
-        color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        margin-right: 10px;
     }
 
     footer {
@@ -133,6 +159,9 @@
     </div>
     <div class="category">
         <input type="text" id="ort" placeholder="Ort">
+    </div>
+    <div class="category">
+        <input type="date" id="datum" placeholder="Aufgabedatum eingeben" lang="de">
     </div>
     
     <h2>Berechnung</h2>
@@ -228,6 +257,16 @@
                 <input type="number" placeholder="Steuerbetrag">
             </div>
         </div>
+        <h4>Buchwerte der Aktiva</h4>
+        <div class="category" data-category="buchwerte">
+            <input type="text" placeholder="Text">
+            <input type="number" placeholder="Betrag eingeben">
+            <label class="ust-check-label"><input type="checkbox" class="ust-check"> USt</label>
+            <div class="ust-details hidden">
+                <input type="number" name="Prozent" placeholder="Prozent">
+                <input type="number" placeholder="Steuerbetrag">
+            </div>
+        </div>
         <h4>Aufgabekosten</h4>
         <div class="category" data-category="aufgabekosten">
             <input type="text" placeholder="Text">
@@ -240,15 +279,13 @@
         </div>
     </div>
     <div class="category">
-        <input type="submit" value="Berechnen">
+        <input type="button" id="berechnenButton" class="calculation-button" value="Berechnen">
     </div>
     <div class="category">
-        <input type="button" name ="saveButton" id="saveButton" value="Save as XML">
-        <label for="importButton" class="custom-file-upload">
-            Datei hochladen
-        </label>
-        <input type="file" name="importButton" id="importButton" accept=".xml" style="display: none;" />        
-    </div>
+        <button type="button" id="saveButton" class="custom-button">Zwischenspeichern</button>
+        <label for="importButton" class="custom-file-upload custom-button">Datei hochladen</label>
+        <input type="file" name="importButton" id="importButton" accept=".xml" style="display: none;" />
+    </div>    
 </form>
 <br><br><br>
 <footer>
@@ -273,6 +310,11 @@
                 aufgabeSection.style.display = 'block';
             }
         }
+
+        document.getElementById('saveButton').addEventListener('click', function(event) {
+            event.stopPropagation(); // Stop propagation to prevent triggering the 'berechnung' event
+            saveAsXML();
+        });
 
         // Initial call to set the correct display state based on the dropdown
         toggleSections();
@@ -328,11 +370,6 @@
         // Initial setup of event listeners for existing rows
         updateEventListeners();
 
-        // Event listener for form submission
-        document.getElementById('calcForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            alert('Berechnung abgeschlossen!');
-        });
 
         function serializeToXML() {
             let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<FormData>\n';
@@ -398,10 +435,6 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
-
-        document.getElementById('saveButton').addEventListener('click', function() {
-            saveAsXML();
-        });
 
         function handleXMLImport(xmlData) {
             const parser = new DOMParser();
@@ -578,7 +611,162 @@
             };
             reader.readAsText(file);
         });
+
+        document.getElementById('berechnenButton').addEventListener('click', function() {
+            function calculateAndDisplayTransitionResult() {
+            var forderungenSum = 0, verbindlichkeitenSum = 0, rueckstellungenSum = 0, bestandsveraenderungSum = 0;
+
+            // Function to log imported values
+            function logImportedValues(categoryName, value) {
+                console.log(categoryName + ': ' + value);
+            }
+
+            // Iterate over all inputs for each category and sum their "Betrag" values
+            document.querySelectorAll('.category[data-category="forderungen"] input[type="number"]').forEach(input => {
+                if (!input.closest('.ust-details')) {
+                    var value = parseFloat(input.value);
+                    if (!isNaN(value)) {
+                        forderungenSum += value;
+                        logImportedValues('Forderungen', value);
+                    }
+                }
+            });
+
+            document.querySelectorAll('.category[data-category="verbindlichkeiten"] input[type="number"]').forEach(input => {
+                if (!input.closest('.ust-details')) {
+                    var value = parseFloat(input.value);
+                    if (!isNaN(value)) {
+                        verbindlichkeitenSum += value;
+                        logImportedValues('Verbindlichkeiten', value);
+                    }
+                }
+            });
+
+            document.querySelectorAll('.category[data-category="rückstellungen"] input[type="number"]').forEach(input => {
+                if (!input.closest('.ust-details')) {
+                    var value = parseFloat(input.value);
+                    if (!isNaN(value)) {
+                        rueckstellungenSum += value;
+                        logImportedValues('Rückstellungen', value);
+                    }
+                }
+            });
+
+            document.querySelectorAll('.category[data-category="bestandsveränderung"] input[type="number"]').forEach(input => {
+                if (!input.closest('.ust-details')) {
+                    var value = parseFloat(input.value);
+                    if (!isNaN(value)) {
+                        bestandsveraenderungSum += value;
+                        logImportedValues('Bestandsveränderung', value);
+                    }
+                }
+            });
+
+            // Calculate the total Übergangsergebnis
+            var uebergangsergebnis = forderungenSum - verbindlichkeitenSum - rueckstellungenSum - bestandsveraenderungSum;
+
+            // Display the result in an alert
+            alert("Übergangsergebnis: " + uebergangsergebnis.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }));
+        }
+
+        function calculateAndDisplayTaskResult() {
+            var veräußerungserlösSum = 0;
+            var privateSchuldenSum = 0;
+            var betrieblicheSchuldenSum = 0;
+            var gemeinerWertInsPVÜbernommenAktivaSum = 0;
+            var buchwertDerAktivaSum = 0;
+            var aufgabekostenSum = 0;
+
+            // Function to log imported values
+            function logImportedValues(categoryName, value) {
+                console.log(categoryName + ': ' + value);
+            }
+
+            // Iterate over all inputs for each category and sum their "Betrag" values
+            document.querySelectorAll('.category[data-category="veräußerungserlös"] input[type="number"]').forEach(input => {
+                if (!input.closest('.ust-details')) {
+                    var value = parseFloat(input.value);
+                    if (!isNaN(value)) {
+                        veräußerungserlösSum += value;
+                        logImportedValues('Veräußerungserlös', value);
+                    }
+                }
+            });
+
+            document.querySelectorAll('.category[data-category="private_schulden"] input[type="number"]').forEach(input => {
+                if (!input.closest('.ust-details')) {
+                    var value = parseFloat(input.value);
+                    if (!isNaN(value)) {
+                        privateSchuldenSum += value;
+                        logImportedValues('Vom Erwerber übernommene private Schulden', value);
+                    }
+                }
+            });
+
+            document.querySelectorAll('.category[data-category="betriebliche_schulden"] input[type="number"]').forEach(input => {
+                if (!input.closest('.ust-details')) {
+                    var value = parseFloat(input.value);
+                    if (!isNaN(value)) {
+                        betrieblicheSchuldenSum += value;
+                        logImportedValues('Vom Erwerber übernommene betriebliche Schulden', value);
+                    }
+                }
+            });
+
+            document.querySelectorAll('.category[data-category="gem_wert_aktiva"] input[type="number"]').forEach(input => {
+                if (!input.closest('.ust-details')) {
+                    var value = parseFloat(input.value);
+                    if (!isNaN(value)) {
+                        gemeinerWertInsPVÜbernommenAktivaSum += value;
+                        logImportedValues('Gemeiner Wert der ins PV übernommen Aktiva', value);
+                    }
+                }
+            });
+
+            document.querySelectorAll('.category[data-category="buchwerte"] input[type="number"]').forEach(input => {
+                if (!input.closest('.ust-details')) {
+                    var value = parseFloat(input.value);
+                    if (!isNaN(value)) {
+                        buchwertDerAktivaSum += value;
+                        logImportedValues('Buchwerte der Aktiva', value);
+                    }
+                }
+            });
+
+            document.querySelectorAll('.category[data-category="aufgabekosten"] input[type="number"]').forEach(input => {
+                if (!input.closest('.ust-details')) {
+                    var value = parseFloat(input.value);
+                    if (!isNaN(value)) {
+                        aufgabekostenSum += value;
+                        logImportedValues('Aufgabekosten', value);
+                    }
+                }
+            });
+
+            // Calculate the total Aufgabeergebnis
+            var aufgabeergebnis = veräußerungserlösSum + privateSchuldenSum + betrieblicheSchuldenSum + gemeinerWertInsPVÜbernommenAktivaSum - buchwertDerAktivaSum - aufgabekostenSum;
+
+            console.log('Calculating Aufgabeergebnis...');
+
+            // Display the result in an alert
+            alert("Aufgabeergebnis: " + aufgabeergebnis.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }));
+        }
+
+
+        // Determine which calculation to perform based on the selected option
+        var selectedOption = document.getElementById('berechnung').value;
+        console.log('Button clicked');
+        if (selectedOption === 'uebergang') {
+            calculateAndDisplayTransitionResult();
+        } else if (selectedOption === 'aufgabe') {
+            calculateAndDisplayTaskResult();
+        } else if (selectedOption === 'beides') {
+            calculateAndDisplayTransitionResult();
+            calculateAndDisplayTaskResult();
+        }
     });
+});
 </script>
+
 </body>
 </html>
