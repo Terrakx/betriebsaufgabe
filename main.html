@@ -109,6 +109,20 @@
         border-radius: 8px;
     }
 
+    .bmd_export {
+        background-color: #ff7b00; /* Green */
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 8px;
+    }
+
     .custom-button:hover,
     .custom-file-upload:hover,
     .calculation-button:hover {
@@ -285,7 +299,10 @@
         <button type="button" id="saveButton" class="custom-button">Zwischenspeichern</button>
         <label for="importButton" class="custom-file-upload custom-button">Datei hochladen</label>
         <input type="file" name="importButton" id="importButton" accept=".xml" style="display: none;" />
-    </div>    
+    </div>
+    <div class="category">
+        <button type="button" id="bmd_export" class="bmd_export">Export für BMD</button>
+    </div>        
 </form>
 <br><br><br>
 <footer>
@@ -315,6 +332,54 @@
             event.stopPropagation(); // Stop propagation to prevent triggering the 'berechnung' event
             saveAsXML();
         });
+
+        document.getElementById('bmd_export').addEventListener('click', function(event) {
+            event.stopPropagation(); // Prevent the click event from bubbling up
+            exportDataAsCSV();
+        });
+
+        function calculateUmsatzsteuer() {
+            // Find all the '.category' elements that contain USt details
+            document.querySelectorAll('.category').forEach(function(category) {
+                // For each category, find the Betrag and Prozent inputs
+                var betragInput = category.querySelector('input[type="number"]:not([name="Prozent"])');
+                var prozentInput = category.querySelector('input[name="Prozent"]');
+                var steuerbetragInput = category.querySelector('.ust-details input[type="number"]:last-child');
+
+                if (betragInput && prozentInput && steuerbetragInput) {
+                    // Attach change event listeners to both Betrag and Prozent inputs
+                    betragInput.addEventListener('blur', updateSteuerbetrag);
+                    prozentInput.addEventListener('blur', updateSteuerbetrag);
+
+                    function updateSteuerbetrag() {
+                        var betrag = parseFloat(betragInput.value) || 0;
+                        var prozent = parseFloat(prozentInput.value) || 0;
+                        var steuerbetrag = (betrag * prozent) / 100;
+                        // Update the Steuerbetrag input with the calculated value
+                        steuerbetragInput.value = steuerbetrag.toFixed(2); // Format for German locale
+                    }
+                }
+            });
+        }
+
+        function attachUmsatzsteuerCalculation() {
+            document.querySelectorAll('.category[data-category]').forEach(category => {
+                const betragInput = category.querySelector('input[type="number"]:not([name="Prozent"])');
+                const prozentInput = category.querySelector('input[name="Prozent"]');
+                const steuerbetragInput = category.querySelector('.ust-details input[type="number"]:last-child');
+
+                const updateSteuerbetrag = () => {
+                    const betrag = parseFloat(betragInput.value) || 0;
+                    const prozent = parseFloat(prozentInput.value) || 0;
+                    const steuerbetrag = (betrag * prozent) / 100;
+                    steuerbetragInput.value = steuerbetrag.toFixed(2);
+                };
+
+                // Attach or re-attach event listeners
+                betragInput.addEventListener('input', updateSteuerbetrag);
+                prozentInput.addEventListener('input', updateSteuerbetrag);
+            });
+        }
 
         // Initial call to set the correct display state based on the dropdown
         toggleSections();
@@ -364,12 +429,13 @@
                 this.closest('.category').parentNode.insertBefore(newRow, this.closest('.category').nextSibling);
                 updateEventListeners();
                 attachCheckboxEventListeners(); // Attach event listeners for checkboxes in the newly added row
+                attachUmsatzsteuerCalculation();
             }
         }
 
         // Initial setup of event listeners for existing rows
         updateEventListeners();
-
+        calculateUmsatzsteuer();
 
         function serializeToXML() {
             let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<FormData>\n';
@@ -446,6 +512,7 @@
             // Attach event listeners for checkboxes
             attachCheckboxEventListeners();
             updateEventListeners();
+            attachUmsatzsteuerCalculation();
         }
 
         function handleGrunddaten(xmlDoc) {
@@ -459,6 +526,58 @@
                 });
             }
         }
+
+        function formatDateToEU(dateString) {
+            // Assuming dateString is in YYYY-MM-DD format
+            const [year, month, day] = dateString.split('-');
+            // Return the date in DD.MM.YYYY format
+            return `${day}.${month}.${year}`;
+        }
+
+        function exportDataAsCSV() {
+            const datum = document.getElementById('datum').value; // Fetch the date and replace slashes with dots
+            const categories = document.querySelectorAll('.category[data-category]');
+
+            const header = "satzart;konto;gkonto;belegnr;belegdatum;buchsymbol;buchcode;prozent;steuercode;betrag;steuer;text";
+            const rows = [header];
+
+            let belegnr = 1;
+
+            categories.forEach(category => {
+                const prozent = category.querySelector('input[name="Prozent"]')?.value || '';
+                const betrag = category.querySelector('input[type="number"]:not([name="Prozent"])')?.value || '';
+                const steuer = category.querySelector('.ust-details input[type="number"]:last-child')?.value || ''; // Fetching "Steuerbetrag"
+                const text = category.querySelector('input[type="text"]')?.value || '';
+
+                // Skip rows where "text" or "betrag" is empty
+                if (text.trim() === '' || betrag.trim() === '') return;
+
+                const row = [
+                    0, '', '', belegnr++, formatDateToEU(datum), 'BB', 1, prozent, '', betrag, steuer, text
+                ].join(';');
+
+                rows.push(row);
+            });
+
+            var csvContent = rows.join("\n");
+
+            var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            var tempLink = document.createElement('a');
+            tempLink.href = URL.createObjectURL(blob);
+            tempLink.setAttribute('download', 'export.csv');
+            document.body.appendChild(tempLink); // Fix for Firefox
+            tempLink.click();
+            document.body.removeChild(tempLink); // Cleanup
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('bmd_export').addEventListener('click', function(event) {
+                event.stopPropagation();
+                exportDataAsCSV();
+            });
+        });
+
+
 
         function handleCategories(xmlDoc) {
             const categories = xmlDoc.getElementsByTagName("FormData")[0].children;
@@ -624,7 +743,7 @@
             // Iterate over all inputs for each category and sum their "Betrag" values
             document.querySelectorAll('.category[data-category="forderungen"] input[type="number"]').forEach(input => {
                 if (!input.closest('.ust-details')) {
-                    var value = parseFloat(input.value);
+                    var value = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '.'));
                     if (!isNaN(value)) {
                         forderungenSum += value;
                         logImportedValues('Forderungen', value);
@@ -634,7 +753,7 @@
 
             document.querySelectorAll('.category[data-category="verbindlichkeiten"] input[type="number"]').forEach(input => {
                 if (!input.closest('.ust-details')) {
-                    var value = parseFloat(input.value);
+                    var value = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '.'));
                     if (!isNaN(value)) {
                         verbindlichkeitenSum += value;
                         logImportedValues('Verbindlichkeiten', value);
@@ -644,7 +763,7 @@
 
             document.querySelectorAll('.category[data-category="rückstellungen"] input[type="number"]').forEach(input => {
                 if (!input.closest('.ust-details')) {
-                    var value = parseFloat(input.value);
+                    var value = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '.'));
                     if (!isNaN(value)) {
                         rueckstellungenSum += value;
                         logImportedValues('Rückstellungen', value);
@@ -654,7 +773,7 @@
 
             document.querySelectorAll('.category[data-category="bestandsveränderung"] input[type="number"]').forEach(input => {
                 if (!input.closest('.ust-details')) {
-                    var value = parseFloat(input.value);
+                    var value = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '.'));
                     if (!isNaN(value)) {
                         bestandsveraenderungSum += value;
                         logImportedValues('Bestandsveränderung', value);
@@ -685,7 +804,7 @@
             // Iterate over all inputs for each category and sum their "Betrag" values
             document.querySelectorAll('.category[data-category="veräußerungserlös"] input[type="number"]').forEach(input => {
                 if (!input.closest('.ust-details')) {
-                    var value = parseFloat(input.value);
+                    var value = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '.'));
                     if (!isNaN(value)) {
                         veräußerungserlösSum += value;
                         logImportedValues('Veräußerungserlös', value);
@@ -695,7 +814,7 @@
 
             document.querySelectorAll('.category[data-category="private_schulden"] input[type="number"]').forEach(input => {
                 if (!input.closest('.ust-details')) {
-                    var value = parseFloat(input.value);
+                    var value = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '.'));
                     if (!isNaN(value)) {
                         privateSchuldenSum += value;
                         logImportedValues('Vom Erwerber übernommene private Schulden', value);
@@ -705,7 +824,7 @@
 
             document.querySelectorAll('.category[data-category="betriebliche_schulden"] input[type="number"]').forEach(input => {
                 if (!input.closest('.ust-details')) {
-                    var value = parseFloat(input.value);
+                    var value = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '.'));
                     if (!isNaN(value)) {
                         betrieblicheSchuldenSum += value;
                         logImportedValues('Vom Erwerber übernommene betriebliche Schulden', value);
@@ -715,7 +834,7 @@
 
             document.querySelectorAll('.category[data-category="gem_wert_aktiva"] input[type="number"]').forEach(input => {
                 if (!input.closest('.ust-details')) {
-                    var value = parseFloat(input.value);
+                    var value = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '.'));
                     if (!isNaN(value)) {
                         gemeinerWertInsPVÜbernommenAktivaSum += value;
                         logImportedValues('Gemeiner Wert der ins PV übernommen Aktiva', value);
@@ -725,7 +844,7 @@
 
             document.querySelectorAll('.category[data-category="buchwerte"] input[type="number"]').forEach(input => {
                 if (!input.closest('.ust-details')) {
-                    var value = parseFloat(input.value);
+                    var value = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '.'));
                     if (!isNaN(value)) {
                         buchwertDerAktivaSum += value;
                         logImportedValues('Buchwerte der Aktiva', value);
@@ -735,7 +854,7 @@
 
             document.querySelectorAll('.category[data-category="aufgabekosten"] input[type="number"]').forEach(input => {
                 if (!input.closest('.ust-details')) {
-                    var value = parseFloat(input.value);
+                    var value = parseFloat(input.value.replace(/\./g, '').replace(/,/g, '.'));
                     if (!isNaN(value)) {
                         aufgabekostenSum += value;
                         logImportedValues('Aufgabekosten', value);
@@ -752,7 +871,6 @@
             alert("Aufgabeergebnis: " + aufgabeergebnis.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }));
         }
 
-
         // Determine which calculation to perform based on the selected option
         var selectedOption = document.getElementById('berechnung').value;
         console.log('Button clicked');
@@ -767,6 +885,7 @@
     });
 });
 </script>
+
 
 </body>
 </html>
