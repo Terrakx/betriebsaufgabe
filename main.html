@@ -79,12 +79,23 @@
         float: right;
     }
 
+    .custom-file-upload {
+        background-color: #3419ac;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+
+
     .hidden {
         display: none;
     }
 
     input[name="saveButton"], input[name="importButton"] {
-        background-color: #740057;
+        background-color: #3419ac;
         color: white;
         padding: 10px 20px;
         border: none;
@@ -230,8 +241,13 @@
     </div>
     <div class="category">
         <input type="submit" value="Berechnen">
+    </div>
+    <div class="category">
         <input type="button" name ="saveButton" id="saveButton" value="Save as XML">
-        <input type="file" name="importButton" id="importButton" accept=".xml" value="Datei hochladen">
+        <label for="importButton" class="custom-file-upload">
+            Datei hochladen
+        </label>
+        <input type="file" name="importButton" id="importButton" accept=".xml" style="display: none;" />        
     </div>
 </form>
 <br><br><br>
@@ -239,186 +255,330 @@
     <p>&copy; 2024 Andreas Pany</p>
 </footer>  
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Function to toggle sections based on dropdown value
-    function toggleSections() {
-        var value = document.getElementById('berechnung').value;
-        var uebergangSection = document.getElementById('uebergang');
-        var aufgabeSection = document.getElementById('aufgabe');
-        
-        if (value === 'uebergang') {
-            uebergangSection.style.display = 'block';
-            aufgabeSection.style.display = 'none';
-        } else if (value === 'aufgabe') {
-            uebergangSection.style.display = 'none';
-            aufgabeSection.style.display = 'block';
-        } else if (value === 'beides') {
-            uebergangSection.style.display = 'block';
-            aufgabeSection.style.display = 'block';
-        }
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Function to toggle sections based on dropdown value
+        function toggleSections() {
+            var value = document.getElementById('berechnung').value;
+            var uebergangSection = document.getElementById('uebergang');
+            var aufgabeSection = document.getElementById('aufgabe');
 
-    // Initial call to set the correct display state based on the dropdown
-    toggleSections();
-
-    // Event listener for the dropdown change
-    document.getElementById('berechnung').addEventListener('change', toggleSections);
-
-    // Function to handle USt checkbox change
-    function handleCheckboxChange() {
-        var ustDetails = this.closest('.category').querySelector('.ust-details');
-        ustDetails.classList.toggle('hidden', !this.checked);
-    }
-
-    // Attach event listeners to USt checkboxes initially present in the form
-    document.querySelectorAll('.ust-check').forEach(checkbox => {
-        checkbox.addEventListener('change', handleCheckboxChange);
-    });
-
-    // Function to update event listeners for text inputs and USt checkboxes
-    function updateEventListeners() {
-        document.querySelectorAll('.category').forEach(function(categoryContainer) {
-            var textInputs = categoryContainer.querySelectorAll('input[type="text"]');
-            textInputs.forEach(input => {
-                input.removeEventListener('input', handleTextInput);
-            });
-
-            var lastTextInput = textInputs[textInputs.length - 1];
-            if (lastTextInput) {
-                lastTextInput.addEventListener('input', handleTextInput);
+            if (value === 'uebergang') {
+                uebergangSection.style.display = 'block';
+                aufgabeSection.style.display = 'none';
+            } else if (value === 'aufgabe') {
+                uebergangSection.style.display = 'none';
+                aufgabeSection.style.display = 'block';
+            } else if (value === 'beides') {
+                uebergangSection.style.display = 'block';
+                aufgabeSection.style.display = 'block';
             }
-        });
-    }
+        }
 
-    function handleTextInput() {
-    var category = this.closest('.category').getAttribute('data-category');
-    var isLastRow = !this.closest('.category').nextElementSibling || this.closest('.category').nextElementSibling.getAttribute('data-category') !== category;
-    
-    if (isLastRow && this.value.trim() !== '') {
-        var newRow = this.closest('.category').cloneNode(true);
-        newRow.setAttribute('data-category', category); // Ensure cloned row retains original data-category
-        newRow.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => input.value = '');
-        newRow.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.checked = false;
+        // Initial call to set the correct display state based on the dropdown
+        toggleSections();
+
+        // Event listener for the dropdown change
+        document.getElementById('berechnung').addEventListener('change', toggleSections);
+
+        // Function to handle USt checkbox change
+        function handleCheckboxChange() {
+            var ustDetails = this.closest('.category').querySelector('.ust-details');
+            ustDetails.classList.toggle('hidden', !this.checked);
+        }
+
+        // Attach event listeners to USt checkboxes initially present in the form
+        document.querySelectorAll('.ust-check').forEach(checkbox => {
             checkbox.addEventListener('change', handleCheckboxChange);
         });
-        newRow.querySelector('.ust-details').classList.add('hidden');
-        this.closest('.category').parentNode.insertBefore(newRow, this.closest('.category').nextSibling);
-        updateEventListeners();
-    }
-}
 
-
-
-    // Initial setup of event listeners for existing rows
-    updateEventListeners();
-
-    // Event listener for form submission
-    document.getElementById('calcForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        alert('Berechnung abgeschlossen!');
-    });
-
-    function serializeToXML() {
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<FormData>\n';
-
-    // Temporary object to hold category sets
-    const categories = {};
-
-    // Iterate over all categories
-    document.querySelectorAll('.category[data-category]').forEach((categoryDiv) => {
-        const category = categoryDiv.getAttribute('data-category');
-
-        // Initialize the category in the categories object if not already present
-        if (!categories[category]) {
-            categories[category] = [];
-        }
-
-        // Prepare the set XML string
-        let setXML = '';
-        let setName = '';
-        categoryDiv.querySelectorAll('input[type="text"], input[type="number"], input[type="checkbox"]').forEach((input, index) => {
-            if (index % 5 === 0) { // Assuming each set has 5 inputs
-                setName = `set${categories[category].length + 1}`;
-                setXML += `<${setName}>\n`;
-            }
-
-            const entryName = `entry${(index % 5) + 1}`;
-            const value = input.type === 'checkbox' ? input.checked : input.value;
-            setXML += `  <${entryName}>${value}</${entryName}>\n`;
-
-            if ((index + 1) % 5 === 0 || index === categoryDiv.querySelectorAll('input[type="text"], input[type="number"], input[type="checkbox"]').length - 1) {
-                setXML += `</${setName}>\n`;
-            }
-        });
-
-        // Add the set XML string to the appropriate category
-        categories[category].push(setXML);
-    });
-
-    // Iterate over the categories object to construct the final XML string
-    Object.keys(categories).forEach(category => {
-        xml += `<${category}>\n`;
-        categories[category].forEach(setXML => {
-            xml += setXML;
-        });
-        xml += `</${category}>\n`;
-    });
-
-    xml += '</FormData>';
-    return xml;
-}
-    // Function to save form data as XML
-    function saveAsXML() {
-        var xmlData = serializeToXML();
-        var blob = new Blob([xmlData], { type: 'application/xml' });
-        var url = URL.createObjectURL(blob);
-
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'formData.xml';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    // Event listener for save button
-        document.getElementById('saveButton').addEventListener('click', function() {
-            saveAsXML(); // Call saveAsXML function directly
-        });
-
-    // Event listener for file input change (import)
-    document.getElementById('importButton').addEventListener('change', function(event) {
-        var file = event.target.files[0];
-        var reader = new FileReader();
-        
-        reader.onload = function(event) {
-            var xmlString = event.target.result;
-            var parser = new DOMParser();
-            var xmlDoc = parser.parseFromString(xmlString, 'text/xml');
-            var formData = xmlDoc.querySelector('FormData');
-
-            if (formData) {
-                var form = document.getElementById('calcForm');
-
-                Array.from(formData.children).forEach(function(field) {
-                    var input = form.querySelector(`#${field.tagName}`);
-                    if (input) {
-                        input.value = field.textContent;
-                    }
+        // Function to update event listeners for text inputs and USt checkboxes
+        function updateEventListeners() {
+            document.querySelectorAll('.category').forEach(function(categoryContainer) {
+                var textInputs = categoryContainer.querySelectorAll('input[type="text"]');
+                textInputs.forEach(input => {
+                    input.removeEventListener('input', handleTextInput);
                 });
 
-                alert('Form data imported successfully!');
-            } else {
-                alert('Invalid XML format!');
+                var lastTextInput = textInputs[textInputs.length - 1];
+                if (lastTextInput) {
+                    lastTextInput.addEventListener('input', handleTextInput);
+                }
+            });
+        }
+
+        // Update the handleTextInput function to call attachCheckboxEventListeners after adding a new row
+        function handleTextInput() {
+            var category = this.closest('.category').getAttribute('data-category');
+            var isLastRow = !this.closest('.category').nextElementSibling || this.closest('.category').nextElementSibling.getAttribute('data-category') !== category;
+
+            if (isLastRow && this.value.trim() !== '') {
+                var newRow = this.closest('.category').cloneNode(true);
+                newRow.setAttribute('data-category', category); // Ensure cloned row retains original data-category
+                newRow.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => input.value = '');
+                newRow.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                newRow.querySelector('.ust-details').classList.add('hidden');
+                this.closest('.category').parentNode.insertBefore(newRow, this.closest('.category').nextSibling);
+                updateEventListeners();
+                attachCheckboxEventListeners(); // Attach event listeners for checkboxes in the newly added row
             }
-        };
+        }
 
-        reader.readAsText(file);
+        // Initial setup of event listeners for existing rows
+        updateEventListeners();
+
+        // Event listener for form submission
+        document.getElementById('calcForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Berechnung abgeschlossen!');
+        });
+
+        function serializeToXML() {
+            let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<FormData>\n';
+
+            // Serialize Grunddaten
+            xml += '<Grunddaten>\n';
+            document.querySelectorAll('#calcForm .category:not([data-category]) input').forEach((input) => {
+                // Assuming each input has an ID that can be used as the element name
+                const tagName = input.id || input.getAttribute('name');
+                const value = input.type === 'checkbox' ? input.checked : input.value; // Adjust for checkboxes if needed
+                xml += `  <${tagName}>${value}</${tagName}>\n`;
+            });
+            xml += '</Grunddaten>\n';
+
+            // Object to keep track of category counts
+            const categoryCounts = {};
+
+            // Iterate over all categories
+            document.querySelectorAll('.category[data-category]').forEach((categoryDiv) => {
+                const category = categoryDiv.getAttribute('data-category');
+
+                // Increment or initialize the count for this category
+                if (!categoryCounts[category]) {
+                    categoryCounts[category] = 1;
+                } else {
+                    categoryCounts[category]++;
+                }
+
+                const setName = `set${categoryCounts[category]}`;
+                // Start the category and set only if it's the first set
+                if (categoryCounts[category] === 1) {
+                    xml += `<${category}>\n`;
+                }
+                xml += `  <${setName}>\n`;
+
+                categoryDiv.querySelectorAll('input[type="text"], input[type="number"], input[type="checkbox"]').forEach((input, index) => {
+                    const entryName = `entry${index + 1}`;
+                    let value = input.type === 'checkbox' ? input.checked : input.value;
+                    xml += `    <${entryName}>${value}</${entryName}>\n`;
+                });
+
+                xml += `  </${setName}>\n`;
+                // Close the category tag only after the last set
+                if (categoryCounts[category] === document.querySelectorAll(`.category[data-category="${category}"]`).length) {
+                    xml += `</${category}>\n`;
+                }
+            });
+
+            xml += '</FormData>';
+            return xml;
+        }
+
+        function saveAsXML() {
+            var xmlData = serializeToXML();
+            var blob = new Blob([xmlData], { type: 'application/xml' });
+            var url = URL.createObjectURL(blob);
+
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'formData.xml';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('saveButton').addEventListener('click', function() {
+            saveAsXML();
+        });
+
+        function handleXMLImport(xmlData) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlData, "text/xml");
+            // Handle Grunddaten
+            handleGrunddaten(xmlDoc);
+            // Handle categories
+            handleCategories(xmlDoc);
+            // Attach event listeners for checkboxes
+            attachCheckboxEventListeners();
+            updateEventListeners();
+        }
+
+        function handleGrunddaten(xmlDoc) {
+            const grunddaten = xmlDoc.getElementsByTagName("Grunddaten")[0];
+            if (grunddaten) {
+                Array.from(grunddaten.children).forEach(input => {
+                    const element = document.getElementById(input.tagName);
+                    if (element) {
+                        element.value = input.textContent;
+                    }
+                });
+            }
+        }
+
+        function handleCategories(xmlDoc) {
+            const categories = xmlDoc.getElementsByTagName("FormData")[0].children;
+            Array.from(categories).forEach(category => {
+                if (category.tagName !== "Grunddaten") {
+                    createAndPopulateFields(category.tagName, Array.from(category.children));
+                }
+            });
+        }
+
+        function createAndPopulateFields(categoryName, sets) {
+            // Clear existing fields except the first set
+            clearExistingInputFields(categoryName);
+            // Iterate over sets and populate data
+            sets.forEach((set, index) => {
+                // Ensure the input row exists
+                ensureInputRowsExist(categoryName, index);
+                // Populate the input fields
+                const entries = set.children;
+                populateFields(categoryName, index, entries);
+            });
+        }
+
+        function clearExistingInputFields(category) {
+            // Reset only the inputs within the category
+            const categories = document.querySelectorAll(`.category[data-category="${category}"]`);
+            if (categories.length > 1) {
+                categories.forEach((category, index) => {
+                    if (index > 0) {
+                        category.remove();
+                    } else {
+                        resetFields(category);
+                    }
+                });
+            } else if (categories.length === 1) {
+                resetFields(categories[0]);
+            }
+        }
+
+        function resetFields(category) {
+            category.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => input.value = '');
+            category.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+                checkbox.dispatchEvent(new Event('change'));
+            });
+        }
+
+        function ensureInputRowsExist(categoryName, setIndex) {
+            let categoryContainers = document.querySelectorAll(`.category[data-category="${categoryName}"]`);
+            // If there are not enough containers for the data, create them
+            if (categoryContainers.length <= setIndex) {
+                // Find the last container of the same category
+                let lastCategoryContainer = categoryContainers[categoryContainers.length - 1];
+                // Clone and insert a new row after the last container of the same category
+                let newCategoryContainer = lastCategoryContainer.cloneNode(true);
+                resetFields(newCategoryContainer);
+                lastCategoryContainer.parentNode.insertBefore(newCategoryContainer, lastCategoryContainer.nextSibling);
+
+                // Update the categoryContainers NodeList since we've added a new container
+                categoryContainers = document.querySelectorAll(`.category[data-category="${categoryName}"]`);
+            }
+        }
+
+        function populateFields(categoryName, setIndex, entries) {
+            const categoryContainers = document.querySelectorAll(`.category[data-category="${categoryName}"]`);
+
+            // Create a new row if necessary
+            if (setIndex >= categoryContainers.length) {
+                const categoryContainer = document.querySelector(`#uebergang .category[data-category="${categoryName}"]`);
+                const newRow = categoryContainer.cloneNode(true);
+                resetFields(newRow);
+                categoryContainer.parentNode.appendChild(newRow);
+                updateEventListenersForNewRow(newRow); // Attach event listeners to the new row
+            }
+
+            const currentContainer = categoryContainers[setIndex];
+            const ustCheck = currentContainer.querySelector('.ust-check');
+            const ustDetails = currentContainer.querySelector('.ust-details');
+            const ustDetailsInputs = ustDetails.querySelectorAll('input');
+
+            Array.from(entries).forEach((entry) => {
+                switch (entry.tagName.toLowerCase()) {
+                    case 'entry3':
+                        ustCheck.checked = entry.textContent === 'true';
+                        ustDetails.classList.toggle('hidden', !ustCheck.checked); // Show or hide details based on checkbox
+                        break;
+                    case 'entry4':
+                        ustDetailsInputs[0].value = entry.textContent; // Assuming the first USt details input is for Prozent
+                        break;
+                    case 'entry5':
+                        ustDetailsInputs[1].value = entry.textContent; // Assuming the second USt details input is for Steuerbetrag
+                        break;
+                    default:
+                        // Handle other entries
+                        const inputIndex = parseInt(entry.tagName.substring(5)) - 1;
+                        const input = currentContainer.querySelectorAll('input[type="text"], input[type="number"]')[inputIndex];
+                        if (input) {
+                            input.value = entry.textContent;
+                        }
+                        break;
+                }
+            });
+        }
+
+        function findInputForEntry(categoryContainer, entry, entryIndex) {
+            // Assume that each set has 5 inputs and the 3rd one is the checkbox
+            const inputs = categoryContainer.querySelectorAll('input');
+            let input;
+            if (entry.tagName.toLowerCase().includes('entry3')) {
+                input = categoryContainer.querySelector('.ust-check'); // Checkbox
+            } else if (entry.tagName.toLowerCase().includes('entry4') || entry.tagName.toLowerCase().includes('entry5')) {
+                // Find the USt details inputs by using the index offset
+                input = categoryContainer.querySelector('.ust-details').children[entryIndex - 4];
+            } else {
+                input = inputs[entryIndex]; // Other text and number inputs
+            }
+            return input;
+        }
+
+        function attachCheckboxEventListeners() {
+            document.querySelectorAll('.ust-check').forEach(checkbox => {
+                checkbox.addEventListener('change', handleCheckboxChange);
+            });
+        }
+        // Update the updateEventListenersForNewRow function to call attachCheckboxEventListeners
+        function updateEventListenersForNewRow(newRow) {
+            attachCheckboxEventListeners(); // Attach event listeners for checkboxes
+            const ustCheckbox = newRow.querySelector('.ust-check');
+            if (ustCheckbox) {
+                ustCheckbox.addEventListener('change', handleCheckboxChange);
+            }
+            // Add other event listeners if necessary
+        }
+
+        function handleCheckboxChange() {
+            const ustDetails = this.closest('.category').querySelector('.ust-details');
+            if (this.checked) {
+                ustDetails.classList.remove('hidden');
+            } else {
+                ustDetails.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('importButton').addEventListener('change', function() {
+            const file = this.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const xmlData = e.target.result;
+                handleXMLImport(xmlData);
+            };
+            reader.readAsText(file);
+        });
     });
-});
-
-</script>    
+</script>
 </body>
 </html>
